@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RN-CLOTHES</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', sans-serif;
+            color: #fff; 
+            background-color: #000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: #222; 
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            color: #fff; 
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .webcam-container, .result-container {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        video, canvas {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+
+        .capture-button {
+            background: #fff; 
+            color: #000; 
+            border: none;
+            padding: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        .capture-button:hover {
+            background: #ddd;
+        }
+
+        #prediction {
+            font-weight: bold;
+            color: blue; 
+            font-size: 1.2em;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .container {
+                width: 100%;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.3em;
+            }
+
+            video, canvas {
+                max-width: 240px;
+            }
+
+            .capture-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RN-CLOTHES</h1>
+        <h1>¿Qué quieres escanear?</h1>
+        <div class="webcam-container">
+            <video id="video" autoplay playsinline></video>
+            <button id="capture" class="capture-button">Capturar</button>
+        </div>
+        <div class="result-container">
+            <h3>RESULTADO: <span id="prediction"></span></h3>
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const predictionElement = document.getElementById('prediction');
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(error => {
+                console.error('Error accessing the camera: ', error);
+            });
+
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('image', blob, 'image.jpg');
+                
+                fetch('https://92bb-189-150-53-218.ngrok-free.app/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    predictionElement.innerText = data.predicted_class;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }, 'image/jpeg');
+        });
+    </script>
+</body>
+</html>
